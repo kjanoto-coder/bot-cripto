@@ -34,18 +34,18 @@ def enviar_alerta_telegram(mensaje):
         print(f"[-] Excepción al conectar con Telegram: {e}")
 
 def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC en USDT usando CoinGecko."""
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=terra-luna-classic&vs_currencies=usdt"
+    """Consulta el precio actual de LUNC en USDT usando la API pública de Binance."""
+    url = "https://api.binance.com/api/v3/ticker/price?symbol=LUNCUSDT"
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            precio = data.get("terra-luna-classic", {}).get("usdt")
+            precio = data.get("price")
             if precio is not None:
                 return float(precio)
-        print(f"[-] Error al consultar CoinGecko. Código HTTP: {response.status_code}")
+        print(f"[-] Error al consultar Binance. Código HTTP: {response.status_code}")
     except Exception as e:
-        print(f"[-] Excepción CoinGecko: {e}")
+        print(f"[-] Excepción Binance: {e}")
     return None
 
 def bucle_bot():
