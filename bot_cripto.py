@@ -31,8 +31,8 @@ def enviar_alerta_telegram(mensaje):
         print(f"[-] Excepción al conectar con Telegram: {e}")
 
 def obtener_precio_lunc():
-    # Usando la API pública directa de Binance para LUNCUSDT
-    url = "https://api.binance.com/api/v3/ticker/price?symbol=LUNCUSDT"
+    # Usando la API pública y gratuita de Mexc o Coincap optimizada para la nube
+    url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
         response = requests.get(url, headers=headers, timeout=10)
@@ -41,9 +41,9 @@ def obtener_precio_lunc():
             precio = data.get("price")
             if precio is not None:
                 return float(precio)
-        print(f"[-] Error al consultar Binance. Código HTTP: {response.status_code}")
+        print(f"[-] Error al consultar la API. Código HTTP: {response.status_code}")
     except Exception as e:
-        print(f"[-] Excepción Binance: {e}")
+        print(f"[-] Excepción en la consulta: {e}")
     return None
 
 def bucle_bot():
