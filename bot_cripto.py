@@ -11,14 +11,14 @@ app = Flask(__name__)
 def home():
     return "Bot LUNC/USDT activo y funcionando 24/7 🚀"
 
-# Credenciales directas con respaldo de variables de entorno
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8948513008:AAH-Q4ooxBQ7y0sTnccXNEaiFAAKb-AxXH0")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "7864354425")
+# Leer credenciales de forma segura desde las variables de entorno de Render
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def enviar_alerta_telegram(mensaje):
     """Envía un mensaje de texto plano al chat de Telegram configurado."""
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        print("[-] Error: Faltan las credenciales de Telegram.")
+        print("[-] Error: Faltan las credenciales de Telegram en las variables de entorno.")
         return
     
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
