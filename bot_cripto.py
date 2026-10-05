@@ -25,7 +25,6 @@ def enviar_alerta_telegram(mensaje):
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": mensaje
-        # Se elimina parse_mode para evitar rechazos por formato Markdown
     }
     
     try:
@@ -63,55 +62,6 @@ def bucle_bot():
         if precio:
             mensaje_analisis = f"--- ANALIZANDO LUNC/USDT ---\nPrecio actual: {precio} USDT"
             print(mensaje_analisis)
-            enviar_alerta_telegram(mensaje_analisis)
-        else:
-            print("[-] No se pudo obtener el precio en este ciclo.")
-            
-        time.sleep(60)
-
-if __name__ == "__main__":
-    # Ejecutar el bot en un hilo independiente para que no bloquee el servidor web
-    hilo_bot = threading.Thread(target=bucle_bot)
-    hilo_bot.daemon = True
-    hilo_bot.start()
-
-    # Iniciar Flask en el puerto asignado por Render
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-            print("[+] Alerta enviada exitosamente a Telegram.")
-        else:
-            print(f">>> Código HTTP Telegram recibido: {response.status_code}")
-            print(response.text)
-    except Exception as e:
-        print(f"[-] Error al conectar con Telegram: {e}")
-
-def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC en USDT usando CoinGecko (sin restricciones geográficas)."""
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=terra-luna-classic&vs_currencies=usdt"
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            precio = data.get("terra-luna-classic", {}).get("usdt")
-            return float(precio)
-        else:
-            print(f"[-] Error al consultar CoinGecko. Código HTTP: {response.status_code}")
-            return None
-    except Exception as e:
-        print(f"[-] Excepción al obtener el precio: {e}")
-        return None
-
-def bucle_bot():
-    """Bucle principal de ejecución continua del bot de trading."""
-    print("--- INICIANDO MONITOREO LUNC/USDT ---")
-    enviar_alerta_telegram("🚀 *El bot de criptomonedas se ha iniciado correctamente en Render.*")
-    
-    while True:
-        precio = obtener_precio_lunc()
-        if precio:
-            mensaje_analisis = f"--- ANALIZANDO LUNC/USDT ---\nPrecio actual: `{precio} USDT`"
-            print(mensaje_analisis)
-            # Enviar el precio actual a Telegram en cada ciclo
             enviar_alerta_telegram(mensaje_analisis)
         else:
             print("[-] No se pudo obtener el precio en este ciclo.")
