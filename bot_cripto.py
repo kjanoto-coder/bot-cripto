@@ -64,9 +64,8 @@ def bucle_bot():
         if precio:
             mensaje_analisis = f"--- ANALIZANDO LUNC/USDT ---\nPrecio actual: `{precio} USDT`"
             print(mensaje_analisis)
-            
-            # Aquí puedes añadir tu lógica de trading o alertas adicionales
-            
+            # Enviar el precio actual a Telegram en cada ciclo
+            enviar_alerta_telegram(mensaje_analisis)
         else:
             print("[-] No se pudo obtener el precio en este ciclo.")
             
