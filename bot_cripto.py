@@ -4,19 +4,16 @@ import threading
 import requests
 from flask import Flask
 
-# Inicializar servidor web para cumplir con el requisito de puertos de Render
 app = Flask(__name__)
 
 @app.route("/")
 def home():
     return "Bot LUNC/USDT activo y funcionando 24/7 🚀"
 
-# Credenciales desde las variables de entorno de Render
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def enviar_alerta_telegram(mensaje):
-    """Envía un mensaje de texto plano al chat de Telegram configurado."""
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
         print("[-] Error: Faltan las credenciales de Telegram en las variables de entorno.")
         return
@@ -34,29 +31,28 @@ def enviar_alerta_telegram(mensaje):
         print(f"[-] Excepción al conectar con Telegram: {e}")
 
 def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC usando la API pública de CoinCap."""
-    url = "https://api.coincap.io/v2/assets/terra-luna-classic"
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=terra-luna-classic&vs_currencies=usdt"
+    headers = {"User-Agent": "Mozilla/5.0"}
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            precio_str = data.get("data", {}).get("priceUsd")
-            if precio_str is not None:
-                return float(precio_str)
-        print(f"[-] Error al consultar CoinCap. Código HTTP: {response.status_code}")
+            precio = data.get("terra-luna-classic", {}).get("usdt")
+            if precio is not None:
+                return float(precio)
+        print(f"[-] Error al consultar CoinGecko. Código HTTP: {response.status_code}")
     except Exception as e:
-        print(f"[-] Excepción CoinCap: {e}")
+        print(f"[-] Excepción CoinGecko: {e}")
     return None
 
 def bucle_bot():
-    """Bucle principal de ejecución continua del bot."""
     print("--- HILO DEL BOT INICIADO CORRECTAMENTE ---")
-    enviar_alerta_telegram("🚀 ¡Bot LUNC iniciado y conectado correctamente en Render!")
+    enviar_alerta_telegram("🚀 ¡Bot LUNC/USDT iniciado y conectado correctamente en Render!")
     
     while True:
         precio = obtener_precio_lunc()
         if precio:
-            mensaje = f"--- MONITOREO LUNC ---\nPrecio actual: {precio} USDT"
+            mensaje = f"--- MONITOREO LUNC/USDT ---\nPrecio actual: {precio} USDT"
             print(f"[+] Precio obtenido: {precio}")
             enviar_alerta_telegram(mensaje)
         else:
