@@ -1,6 +1,15 @@
 import os
 import time
+import threading
 import requests
+from flask import Flask
+
+# Inicializar servidor web para cumplir con el requisito de puertos de Render
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot LUNC/USDT activo y funcionando 24/7 🚀"
 
 # Cargar credenciales desde las variables de entorno de Render
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -30,7 +39,7 @@ def enviar_alerta_telegram(mensaje):
         print(f"[-] Error al conectar con Telegram: {e}")
 
 def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC en USDT usando la API de CoinGecko (sin restricciones geográficas)."""
+    """Consulta el precio actual de LUNC en USDT usando CoinGecko (sin restricciones geográficas)."""
     url = "https://api.coingecko.com/api/v3/simple/price?ids=terra-luna-classic&vs_currencies=usdt"
     try:
         response = requests.get(url, timeout=10)
@@ -45,28 +54,30 @@ def obtener_precio_lunc():
         print(f"[-] Excepción al obtener el precio: {e}")
         return None
 
-def ejecutar_bot():
+def bucle_bot():
+    """Bucle principal de ejecución continua del bot de trading."""
     print("--- INICIANDO MONITOREO LUNC/USDT ---")
     enviar_alerta_telegram("🚀 *El bot de criptomonedas se ha iniciado correctamente en Render.*")
     
-    # Bucle principal de ejecución continua (cada 60 segundos)
     while True:
         precio = obtener_precio_lunc()
         if precio:
             mensaje_analisis = f"--- ANALIZANDO LUNC/USDT ---\nPrecio actual: `{precio} USDT`"
             print(mensaje_analisis)
             
-            # Aquí puedes agregar tu lógica de indicadores técnicos y condiciones de compra/venta
+            # Aquí puedes añadir tu lógica de trading o alertas adicionales
             
         else:
             print("[-] No se pudo obtener el precio en este ciclo.")
             
-        # Esperar 60 segundos antes de la siguiente consulta para evitar límites de la API
         time.sleep(60)
 
 if __name__ == "__main__":
-    ejecutar_bot()
+    # Ejecutar el bot en un hilo independiente para que no bloquee el servidor web
+    hilo_bot = threading.Thread(target=bucle_bot)
+    hilo_bot.daemon = True
+    hilo_bot.start()
 
-if __name__ == "__main__":
-  bot = BotCriptoNube()
-  bot.analizar_y_reportar()
+    # Iniciar Flask en el puerto asignado por Render
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
