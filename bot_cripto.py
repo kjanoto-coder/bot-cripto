@@ -13,16 +13,16 @@ def enviar_alerta_telegram():
         print("[-] Faltan credenciales configuradas.")
         return
 
-    # Mensaje estructurado idéntico al que ya tenías funcionando
+    # Mensaje estructurado con los botones apuntando a tu GitHub Pages
     mensaje = (
         "🧠 *CENTRAL DE INTELIGENCIA (GEMINI AI)*\n"
         "📊 _Analizadas: 399 altcoins de Binance (< $1 USD)_\n\n"
         "🚀 *TOP 5 GANADORAS*\n"
         "• *GTC* | $0.1481 | 🟩🟩🟩🟩🟩 | +31.2%\n"
-        "  └ 📊 [Resumen IA](https://tu-usuario.github.io/tu-repo/?coin=GTC&price=0.1481&change=31.2) | 🔸 [Tradear](https://www.binance.com/es/trade/GTC_USDT)\n\n"
+        "  └ 📊 [Resumen IA](https://kjanoto-coder.github.io/panel-cripto/?coin=GTC&price=0.1481&change=31.2) | 🔸 [Tradear](https://www.binance.com/es/trade/GTC_USDT)\n\n"
         "⭐ *ESTADO DE TUS FAVORITAS*\n"
         "• *LUNC* | $0.00005254 (-0.2%)\n"
-        "  └ 📊 [Resumen IA](https://tu-usuario.github.io/tu-repo/?coin=LUNC&price=0.00005254&change=-0.2) | 🔸 [Tradear](https://www.binance.com/es/trade/LUNC_USDT)"
+        "  └ 📊 [Resumen IA](https://kjanoto-coder.github.io/panel-cripto/?coin=LUNC&price=0.00005254&change=-0.2) | 🔸 [Tradear](https://www.binance.com/es/trade/LUNC_USDT)"
     )
 
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -45,7 +45,6 @@ def enviar_alerta_telegram():
 
 @app.route("/")
 def home():
-    # Dispara la alerta al verificar que el servicio despierta
     enviar_alerta_telegram()
     return "Bot de Alertas Cripto activo y operando en la nube 🚀"
 
