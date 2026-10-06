@@ -28,11 +28,12 @@ def obtener_precio_lunc():
         return None
 
 def enviar_mensaje(mensaje, token, chat_id):
-    """Envía el mensaje al chat de Telegram"""
+    """Envía el mensaje al chat de Telegram con un tiempo de espera de 30s"""
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
-        response = requests.post(url, json=payload, timeout=10)
+        # Aumentamos el timeout a 30 segundos para evitar cortes por congestión
+        response = requests.post(url, json=payload, timeout=30)
         
         if response.status_code == 200:
             print("[+] Mensaje enviado a Telegram correctamente.")
@@ -43,7 +44,7 @@ def enviar_mensaje(mensaje, token, chat_id):
 
 def iniciar_bot():
     """Bucle principal del bot"""
-    print("--- INICIANDO BOT (CONEXIÓN A MEXC) ---")
+    print("--- INICIANDO BOT (MEXC + TELEGRAM MEJORADO) ---")
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("CHAT_ID")
 
@@ -55,7 +56,7 @@ def iniciar_bot():
         precio = obtener_precio_lunc()
         if precio is not None:
             mensaje = f"🚀 <b>Actualización de LUNC:</b>\n\nPrecio actual: <code>{precio:.8f} USDT</code>"
-            print(f"[+] Precio obtenido: {precio:.8f} - Enviando mensaje...")
+            print(f"[+] Precio obtenido: {precio:.8f} - Enviando mensaje a Telegram...")
             enviar_mensaje(mensaje, token, chat_id)
         
         # Espera 1 hora (3600 segundos) antes de volver a consultar
