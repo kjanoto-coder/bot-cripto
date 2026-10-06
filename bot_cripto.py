@@ -4,73 +4,63 @@ import requests
 import threading
 from flask import Flask
 
-# Inicializamos la aplicación Flask para que Render mantenga el servicio activo
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Your service is live 🚀"
+    return "Bot Activo 🚀"
 
 def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC en Binance"""
     try:
-        # Buscamos específicamente LUNCUSDT
         url = "https://api.binance.com/api/v3/ticker/price?symbol=LUNCUSDT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
-        # Validamos que la respuesta contenga 'price'
         if 'price' in data:
             return float(data['price'])
         else:
-            print(f"[-] Binance respondió con algo inesperado: {data}")
+            print(f"[-] Error Binance: {data}")
             return None
-            
     except Exception as e:
-        print(f"[-] Error de red al consultar Binance: {e}")
+        print(f"[-] Error de red: {e}")
         return None
 
-def enviar_mensaje_telegram(mensaje, token, chat_id):
-    """Envía el mensaje al chat de Telegram"""
+def enviar_mensaje(mensaje, token, chat_id):
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": mensaje,
-            "parse_mode": "HTML"
-        }
-        response = requests.post(url, json=payload, timeout=10)
-        
-        if response.status_code == 200:
-            print("[+] Mensaje enviado a Telegram con éxito.")
-        else:
-            print(f"[-] Error enviando a Telegram: {response.text}")
+        payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
+        requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        print(f"[-] Error de conexión con Telegram: {e}")
+        print(f"[-] Error enviando a Telegram: {e}")
 
 def iniciar_bot():
-    """Bucle principal del bot que se ejecutará en segundo plano"""
-    print("--- HILO DEL BOT INICIADO CORRECTAMENTE ---")
-    
-    # Obtenemos las variables de entorno configuradas en Render
+    print("--- INICIANDO BOT ---")
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("CHAT_ID")
 
-    # Si falta alguna variable, avisamos y detenemos este hilo
     if not token or not chat_id:
-        print("[-] Faltan las variables TELEGRAM_TOKEN o CHAT_ID en Render.")
+        print("[-] Faltan variables TELEGRAM_TOKEN o CHAT_ID.")
         return
 
-    # Bucle infinito del bot
     while True:
         precio = obtener_precio_lunc()
-        
         if precio is not None:
-            # Formateamos el precio con 8 decimales por ser una criptomoneda de valor pequeño
-            mensaje = f"🚀 <b>Actualización de Precio</b>\n\nEl precio de <b>LUNC</b> es: <code>{precio:.8f} USDT</code>"
-            print(f"[+] Precio obtenido: {precio:.8f} - Enviando mensaje...")
-            
-            enviar_mensaje_telegram(mensaje, token, chat_id)
+            mensaje = f"🚀 <b>LUNC:</b> <code>{precio:.8f} USDT</code>"
+            print(f"[+] Enviando precio: {precio:.8f}")
+            enviar_mensaje(mensaje, token, chat_id)
         
-        # Tiempo de espera antes de volver a consultar (3600 segundos = 1 hora)
-        # Puedes cambiar este número si quieres que av
+        # Espera 1 hora (3600 segundos) antes de volver a consultar
+        time.sleep(3600)
+
+if __name__ == "__main__":
+    try:
+        # Iniciamos el bot en segundo plano
+        hilo = threading.Thread(target=iniciar_bot)
+        hilo.daemon = True
+        hilo.start()
+        
+        # Iniciamos el servidor web para mantener viva la app
+        puerto = int(os.environ.get("PORT", 10000))
+        app.run(host="0.0.0.0", port=puerto)
+    except Exception as e:
+        print(f"[-] Error fatal iniciando la app: {e}")
