@@ -1,70 +1,34 @@
-import os
-import time
-import threading
 import requests
-from flask import Flask
+import time
 
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "Bot LUNC/USDT activo y funcionando 24/7 🚀"
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-def enviar_alerta_telegram(mensaje):
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        print("[-] Error: Faltan las credenciales de Telegram en las variables de entorno.")
-        return
-    
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+def enviar_alerta_telegram(mensaje, token, chat_id):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensaje
+        "chat_id": chat_id,
+        "text": mensaje,
+        "parse_mode": "Markdown"
     }
     
-    try:
-        response = requests.post(url, json=payload, timeout=10)
-        print(f"[DEBUG] Telegram respondió código: {response.status_code} - {response.text}")
-    except Exception as e:
-        print(f"[-] Excepción al conectar con Telegram: {e}")
-
-def obtener_precio_lunc():
-    # Usando la API pública y gratuita de Mexc o Coincap optimizada para la nube
-    url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            precio = data.get("price")
-            if precio is not None:
-                return float(precio)
-        print(f"[-] Error al consultar la API. Código HTTP: {response.status_code}")
-    except Exception as e:
-        print(f"[-] Excepción en la consulta: {e}")
-    return None
-
-def bucle_bot():
-    print("--- HILO DEL BOT INICIADO CORRECTAMENTE ---")
-    time.sleep(5)
-    enviar_alerta_telegram("🚀 ¡Bot LUNC/USDT iniciado y conectado correctamente en Render!")
+    # Intentamos hasta 3 veces si hay un problema de red
+    for intento in range(3):
+        try:
+            # Subimos el timeout a 30 segundos para darle margen a Render
+            response = requests.post(url, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                print("[+] Mensaje enviado con éxito a Telegram.")
+                return True
+            else:
+                print(f"[DEBUG] Telegram respondió código: {response.status_code} - {response.text}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            print(f"[-] Timeout en Telegram (Intento {intento + 1}/3). Reintentando...")
+            time.sleep(2) # Espera 2 segundos antes de reintentar
+        except Exception as e:
+            print(f"[-] Error de conexión con Telegram: {e}")
+            return False
+            
+    print("[-] No se pudo enviar el mensaje a Telegram tras varios intentos por problemas de red.")
+    return False
     
-    while True:
-        precio = obtener_precio_lunc()
-        if precio:
-            mensaje = f"--- MONITOREO LUNC/USDT ---\nPrecio actual: {precio} USDT"
-            print(f"[+] Precio obtenido: {precio}")
-            enviar_alerta_telegram(mensaje)
-        else:
-            print("[-] No se pudo obtener el precio en este ciclo.")
-        time.sleep(60)
-
-if __name__ == "__main__":
-    hilo_bot = threading.Thread(target=bucle_bot)
-    hilo_bot.daemon = True
-    hilo_bot.start()
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
