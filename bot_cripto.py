@@ -32,7 +32,6 @@ def enviar_mensaje(mensaje, token, chat_id):
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
-        # Aumentamos el timeout a 30 segundos para evitar cortes por congestión
         response = requests.post(url, json=payload, timeout=30)
         
         if response.status_code == 200:
@@ -44,12 +43,12 @@ def enviar_mensaje(mensaje, token, chat_id):
 
 def iniciar_bot():
     """Bucle principal del bot"""
-    print("--- INICIANDO BOT (MEXC + TELEGRAM MEJORADO) ---")
+    print("--- INICIANDO BOT (MEXC + TELEGRAM) ---")
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("CHAT_ID")
 
     if not token or not chat_id:
-        print("[-] Faltan variables TELEGRAM_TOKEN o CHAT_ID.")
+        print("[-] Faltan variables TELEGRAM_TOKEN o CHAT_ID en Render.")
         return
 
     while True:
