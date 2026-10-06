@@ -23,13 +23,13 @@ else:
 
 def obtener_precio_mexc():
     try:
-        url = "https://www.mexc.com/open/api/v2/market/ticker?symbol=LUNC_USDT"
+        # Endpoint actualizado de la API v3 de MEXC
+        url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
-        if "data" in data and len(data["data"]) > 0:
-            precio = data["data"][0]["deal"]
-            return float(precio)
+        if "price" in data:
+            return float(data["price"])
     except Exception as e:
         print(f"[-] Error al consultar la API de MEXC: {e}")
     return None
@@ -72,4 +72,3 @@ def home():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-    
