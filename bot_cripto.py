@@ -11,7 +11,6 @@ CHAT_ID = os.environ.get("CHAT_ID")
 
 print("--- INICIANDO BOT (MEXC + TELEGRAM) ---")
 if TELEGRAM_TOKEN:
-    # Mostramos los primeros 10 caracteres para verificar en los logs que Render lee la clave correcta
     print(f"Token configurado (primeros 10 chars): {TELEGRAM_TOKEN[:10]}...")
 else:
     print("¡ADVERTENCIA! TELEGRAM_TOKEN no está configurado en las variables de entorno.")
@@ -24,7 +23,6 @@ else:
 
 def obtener_precio_mexc():
     try:
-        # URL pública de la API de MEXC para el par LUNC/USDT (ajusta el par si usas otro)
         url = "https://www.mexc.com/open/api/v2/market/ticker?symbol=LUNC_USDT"
         response = requests.get(url, timeout=10)
         data = response.json()
@@ -63,5 +61,15 @@ def enviar_mensaje_telegram(mensaje):
 
 @app.route("/")
 def home():
-    # Realizamos una prueba rápida al entrar a la web o la ruta principal
-    precio =
+    precio = obtener_precio_mexc()
+    if precio:
+        mensaje_prueba = f"🤖 *Bot Cripto activo*\n📊 Precio LUNC actual: `{precio}`"
+        enviar_mensaje_telegram(mensaje_prueba)
+        return f"Your service is live 🚀 - Precio obtenido y enviado: {precio}"
+    return "Your service is live 🚀 (No se pudo obtener el precio de MEXC)"
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+    
