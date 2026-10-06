@@ -82,6 +82,7 @@ if __name__ == '__main__':
     hilo_bot = threading.Thread(target=bot_loop)
     hilo_bot.daemon = True
     hilo_bot.start()
-    
+
     # Arranca el servidor web para Render
-    port =
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
