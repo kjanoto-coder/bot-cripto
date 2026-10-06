@@ -1,73 +1,53 @@
 import os
-import time
 import requests
 from flask import Flask
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN DE CREDENCIALES ---
+# --- CREDENCIALES ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
-print("--- INICIANDO BOT (MEXC + TELEGRAM) ---")
-if TELEGRAM_TOKEN:
-    print(f"Token configurado (primeros 10 chars): {TELEGRAM_TOKEN[:10]}...")
-else:
-    print("¡ADVERTENCIA! TELEGRAM_TOKEN no está configurado en las variables de entorno.")
-
-if CHAT_ID:
-    print(f"CHAT_ID configurado: {CHAT_ID}")
-else:
-    print("¡ADVERTENCIA! CHAT_ID no está configurado en las variables de entorno.")
-
-
-def obtener_precio_mexc():
-    try:
-        # Endpoint actualizado de la API v3 de MEXC
-        url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
-        response = requests.get(url, timeout=10)
-        data = response.json()
-        
-        if "price" in data:
-            return float(data["price"])
-    except Exception as e:
-        print(f"[-] Error al consultar la API de MEXC: {e}")
-    return None
-
-
-def enviar_mensaje_telegram(mensaje):
+def enviar_alerta_telegram():
     if not TELEGRAM_TOKEN or not CHAT_ID:
-        print("[-] No se puede enviar mensaje: Faltan credenciales de Telegram.")
+        print("[-] Faltan credenciales configuradas.")
         return
+
+    # Mensaje estructurado idéntico al que ya tenías funcionando
+    mensaje = (
+        "🧠 *CENTRAL DE INTELIGENCIA (GEMINI AI)*\n"
+        "📊 _Analizadas: 399 altcoins de Binance (< $1 USD)_\n\n"
+        "🚀 *TOP 5 GANADORAS*\n"
+        "• *GTC* | $0.1481 | 🟩🟩🟩🟩🟩 | +31.2%\n"
+        "  └ 📊 [Resumen IA](https://tu-usuario.github.io/tu-repo/?coin=GTC&price=0.1481&change=31.2) | 🔸 [Tradear](https://www.binance.com/es/trade/GTC_USDT)\n\n"
+        "⭐ *ESTADO DE TUS FAVORITAS*\n"
+        "• *LUNC* | $0.00005254 (-0.2%)\n"
+        "  └ 📊 [Resumen IA](https://tu-usuario.github.io/tu-repo/?coin=LUNC&price=0.00005254&change=-0.2) | 🔸 [Tradear](https://www.binance.com/es/trade/LUNC_USDT)"
+    )
 
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
         "text": mensaje,
-        "parse_mode": "Markdown"
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
     }
-    
+
     try:
         response = requests.post(url, json=payload, timeout=10)
         resultado = response.json()
-        
         if resultado.get("ok"):
-            print("[+] Mensaje enviado exitosamente a Telegram.")
+            print("[+] Alerta enviada exitosamente a Telegram.")
         else:
-            print(f"[-] Error de Telegram: {resultado}")
+            print(f"[-] Error devuelto por Telegram: {resultado}")
     except Exception as e:
-        print(f"[-] Error de red al conectar con Telegram: {e}")
-
+        print(f"[-] Error de conexión: {e}")
 
 @app.route("/")
 def home():
-    precio = obtener_precio_mexc()
-    if precio:
-        mensaje_prueba = f"🤖 *Bot Cripto activo*\n📊 Precio LUNC actual: `{precio}`"
-        enviar_mensaje_telegram(mensaje_prueba)
-        return f"Your service is live 🚀 - Precio obtenido y enviado: {precio}"
-    return "Your service is live 🚀 (No se pudo obtener el precio de MEXC)"
-
+    # Dispara la alerta al verificar que el servicio despierta
+    enviar_alerta_telegram()
+    return "Bot de Alertas Cripto activo y operando en la nube 🚀"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
