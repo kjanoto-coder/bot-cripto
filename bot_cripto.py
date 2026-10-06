@@ -1,75 +1,67 @@
 import os
 import time
 import requests
-import threading
 from flask import Flask
 
-# Servidor web básico para mantener viva la aplicación en Render
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "Bot Activo y funcionando 🚀"
+# --- CONFIGURACIÓN DE CREDENCIALES ---
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
-def obtener_precio_lunc():
-    """Consulta el precio actual de LUNC en MEXC (evita bloqueo de Binance)"""
+print("--- INICIANDO BOT (MEXC + TELEGRAM) ---")
+if TELEGRAM_TOKEN:
+    # Mostramos los primeros 10 caracteres para verificar en los logs que Render lee la clave correcta
+    print(f"Token configurado (primeros 10 chars): {TELEGRAM_TOKEN[:10]}...")
+else:
+    print("¡ADVERTENCIA! TELEGRAM_TOKEN no está configurado en las variables de entorno.")
+
+if CHAT_ID:
+    print(f"CHAT_ID configurado: {CHAT_ID}")
+else:
+    print("¡ADVERTENCIA! CHAT_ID no está configurado en las variables de entorno.")
+
+
+def obtener_precio_mexc():
     try:
-        url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
+        # URL pública de la API de MEXC para el par LUNC/USDT (ajusta el par si usas otro)
+        url = "https://www.mexc.com/open/api/v2/market/ticker?symbol=LUNC_USDT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
-        if 'price' in data:
-            return float(data['price'])
-        else:
-            print(f"[-] Error del Exchange: {data}")
-            return None
+        if "data" in data and len(data["data"]) > 0:
+            precio = data["data"][0]["deal"]
+            return float(precio)
     except Exception as e:
-        print(f"[-] Error de red obteniendo precio: {e}")
-        return None
+        print(f"[-] Error al consultar la API de MEXC: {e}")
+    return None
 
-def enviar_mensaje(mensaje, token, chat_id):
-    """Envía el mensaje al chat de Telegram con un tiempo de espera de 30s"""
-    try:
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
-        response = requests.post(url, json=payload, timeout=30)
-        
-        if response.status_code == 200:
-            print("[+] Mensaje enviado a Telegram correctamente.")
-        else:
-            print(f"[-] Error de Telegram: {response.text}")
-    except Exception as e:
-        print(f"[-] Error de red enviando a Telegram: {e}")
 
-def iniciar_bot():
-    """Bucle principal del bot"""
-    print("--- INICIANDO BOT (MEXC + TELEGRAM) ---")
-    token = os.environ.get("TELEGRAM_TOKEN")
-    chat_id = os.environ.get("CHAT_ID")
-
-    if not token or not chat_id:
-        print("[-] Faltan variables TELEGRAM_TOKEN o CHAT_ID en Render.")
+def enviar_mensaje_telegram(mensaje):
+    if not TELEGRAM_TOKEN or not CHAT_ID:
+        print("[-] No se puede enviar mensaje: Faltan credenciales de Telegram.")
         return
 
-    while True:
-        precio = obtener_precio_lunc()
-        if precio is not None:
-            mensaje = f"🚀 <b>Actualización de LUNC:</b>\n\nPrecio actual: <code>{precio:.8f} USDT</code>"
-            print(f"[+] Precio obtenido: {precio:.8f} - Enviando mensaje a Telegram...")
-            enviar_mensaje(mensaje, token, chat_id)
-        
-        # Espera 1 hora (3600 segundos) antes de volver a consultar
-        time.sleep(3600)
-
-if __name__ == "__main__":
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": mensaje,
+        "parse_mode": "Markdown"
+    }
+    
     try:
-        # 1. Iniciamos el bot en segundo plano
-        hilo = threading.Thread(target=iniciar_bot)
-        hilo.daemon = True
-        hilo.start()
+        response = requests.post(url, json=payload, timeout=10)
+        resultado = response.json()
         
-        # 2. Iniciamos el servidor web para Render
-        puerto = int(os.environ.get("PORT", 10000))
-        app.run(host="0.0.0.0", port=puerto)
+        if resultado.get("ok"):
+            print("[+] Mensaje enviado exitosamente a Telegram.")
+        else:
+            print(f"[-] Error de Telegram: {resultado}")
     except Exception as e:
-        print(f"[-] Error fatal iniciando la app: {e}")
+        print(f"[-] Error de red al conectar con Telegram: {e}")
+
+
+@app.route("/")
+def home():
+    # Realizamos una prueba rápida al entrar a la web o la ruta principal
+    precio =
