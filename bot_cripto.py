@@ -4,37 +4,46 @@ import requests
 import threading
 from flask import Flask
 
+# Servidor web básico para mantener viva la aplicación en Render
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot Activo 🚀"
+    return "Bot Activo y funcionando 🚀"
 
 def obtener_precio_lunc():
+    """Consulta el precio actual de LUNC en MEXC (evita bloqueo de Binance)"""
     try:
-        url = "https://api.binance.com/api/v3/ticker/price?symbol=LUNCUSDT"
+        url = "https://api.mexc.com/api/v3/ticker/price?symbol=LUNCUSDT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
         if 'price' in data:
             return float(data['price'])
         else:
-            print(f"[-] Error Binance: {data}")
+            print(f"[-] Error del Exchange: {data}")
             return None
     except Exception as e:
-        print(f"[-] Error de red: {e}")
+        print(f"[-] Error de red obteniendo precio: {e}")
         return None
 
 def enviar_mensaje(mensaje, token, chat_id):
+    """Envía el mensaje al chat de Telegram"""
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = {"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"}
-        requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            print("[+] Mensaje enviado a Telegram correctamente.")
+        else:
+            print(f"[-] Error de Telegram: {response.text}")
     except Exception as e:
-        print(f"[-] Error enviando a Telegram: {e}")
+        print(f"[-] Error de red enviando a Telegram: {e}")
 
 def iniciar_bot():
-    print("--- INICIANDO BOT ---")
+    """Bucle principal del bot"""
+    print("--- INICIANDO BOT (CONEXIÓN A MEXC) ---")
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("CHAT_ID")
 
@@ -45,8 +54,8 @@ def iniciar_bot():
     while True:
         precio = obtener_precio_lunc()
         if precio is not None:
-            mensaje = f"🚀 <b>LUNC:</b> <code>{precio:.8f} USDT</code>"
-            print(f"[+] Enviando precio: {precio:.8f}")
+            mensaje = f"🚀 <b>Actualización de LUNC:</b>\n\nPrecio actual: <code>{precio:.8f} USDT</code>"
+            print(f"[+] Precio obtenido: {precio:.8f} - Enviando mensaje...")
             enviar_mensaje(mensaje, token, chat_id)
         
         # Espera 1 hora (3600 segundos) antes de volver a consultar
@@ -54,12 +63,12 @@ def iniciar_bot():
 
 if __name__ == "__main__":
     try:
-        # Iniciamos el bot en segundo plano
+        # 1. Iniciamos el bot en segundo plano
         hilo = threading.Thread(target=iniciar_bot)
         hilo.daemon = True
         hilo.start()
         
-        # Iniciamos el servidor web para mantener viva la app
+        # 2. Iniciamos el servidor web para Render
         puerto = int(os.environ.get("PORT", 10000))
         app.run(host="0.0.0.0", port=puerto)
     except Exception as e:
