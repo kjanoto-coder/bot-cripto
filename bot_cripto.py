@@ -14,7 +14,7 @@ def home():
 # 2. Función mejorada de Telegram (con timeout de 30s y reintentos)
 def enviar_alerta_telegram(mensaje):
     token = os.environ.get("TELEGRAM_TOKEN")
-    chat_id = os.environ.get("CHAT_ID") 
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID") 
     
     if not token or not chat_id:
         print("[-] Faltan las variables TELEGRAM_TOKEN o CHAT_ID en Render.")
