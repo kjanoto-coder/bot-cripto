@@ -107,4 +107,86 @@ def generar_mensaje_cripto(coin_data):
     mensaje += "\n"
 
     # 2. TOP 5 GEMAS EN ACUMULACIÓN
-    mensaje += "💎
+    mensaje += "💎 <b>TOP 5 GEMAS EN ACUMULACIÓN (< $1.00 USD)</b>\n"
+    acumulacion = coin_data.get('top_acumulacion', [])
+    for coin in acumulacion[:5]:
+        sym = coin.get('symbol', 'N/A')
+        prc = coin.get('price', 0)
+        chg = coin.get('change', 0)
+        prc_str = fmt_price(prc)
+        url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        
+        mensaje += (
+            f"• 🟢 <b>{sym}</b> | ${prc_str} | Cambio: {chg:.2f}% | Vol: ${coin.get('vol_fmt', '0')}\n"
+            f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
+        )
+    mensaje += "\n"
+
+    # 3. TOP 5 PERDEDORAS
+    mensaje += "📉 <b>TOP 5 PERDEDORAS (Zonas de Rebote)</b>\n"
+    perdedoras = coin_data.get('top_perdedoras', [])
+    for coin in perdedoras[:5]:
+        sym = coin.get('symbol', 'N/A')
+        prc = coin.get('price', 0)
+        chg = coin.get('change', 0)
+        prc_str = fmt_price(prc)
+        url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+        
+        mensaje += (
+            f"• <b>{sym}</b> | ${prc_str} | {coin.get('barra', '🟥🟥🟥🟥🟥')} | {chg:.2f}%\n"
+            f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{coin.get('url_trade', '#')}'>Tradear</a>\n"
+        )
+    mensaje += "\n"
+
+    # 4. ESTADO DE FAVORITAS
+    mensaje += "⭐ <b>ESTADO DE TUS FAVORITAS</b>\n"
+    favoritas_ejemplo = ["LUNC", "TUT", "PEPE", "SHIB", "FLOKI"]
+    all_market_coins = {c['symbol']: c for c in (ganadoras + acumulacion + perdedoras)}
+    
+    for sym in favoritas_ejemplo[:5]:
+        if sym in all_market_coins:
+            fav = all_market_coins[sym]
+            prc_str = fmt_price(fav['price'])
+            chg = fav['change']
+            url_ia = f"{BASE_URL}/?coin={sym}&price={prc_str}&change={chg}"
+            icono = "🟢" if chg >= 0 else "🔴"
+            mensaje += (
+                f"• {icono} <b>{sym}</b> | ${prc_str} ({chg:.2f}%)\n"
+                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='{fav.get('url_trade', '#')}'>Tradear</a>\n"
+            )
+        else:
+            url_ia = f"{BASE_URL}/?coin={sym}&price=0.00&change=0"
+            mensaje += (
+                f"• ⚪ <b>{sym}</b> | Sin datos recientes\n"
+                f"  └ 📊 <a href='{url_ia}'>Resumen IA</a> | 🔶 <a href='#'>Tradear</a>\n"
+            )
+
+    return mensaje
+
+def enviar_a_telegram(mensaje):
+    token = os.environ.get("TELEGRAM_TOKEN")
+    chat_id = os.environ.get("CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        print("❌ Error crítico: Faltan las variables de entorno TELEGRAM_TOKEN o CHAT_ID.")
+        return
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": mensaje,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        print("✅ ¡Mensaje enviado a Telegram con éxito!")
+    else:
+        print(f"❌ Error al enviar a Telegram: {response.text}")
+
+if __name__ == "__main__":
+    print("🤖 Iniciando proceso del bot de criptomonedas...")
+    datos_mercado = obtener_datos_binance()
+    texto_final = generar_mensaje_cripto(datos_mercado)
+    enviar_a_telegram(texto_final)
