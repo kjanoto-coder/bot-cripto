@@ -1,16 +1,10 @@
 import os
 import time
 import random
-import json
 import requests
-import google.generativeai as genai
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
 
 def obtener_datos_binance():
     url = "https://data-api.binance.vision/api/v3/ticker/24hr"
@@ -38,75 +32,20 @@ def generar_barra_progreso(cambio, es_acumulacion=False):
     else:
         return "🟥🟥🟥🟥🟥"
 
-def analisis_autonomo_gemini(candidatos_resumen):
-    """
-    Utiliza Gemini AI de forma autónoma para evaluar el mercado y filtrar/analizar las mejores opciones.
-    """
-    if not GEMINI_API_KEY:
-        print("GEMINI_API_KEY no configurada. Usando selección algorítmica estándar.")
-        return None
-
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"""
-        Eres un sistema autónomo de inteligencia artificial experto en trading de criptomonedas (Binance Spot).
-        Analiza los siguientes datos de mercado resumidos de altcoins y selecciona inteligentemente basándote en análisis técnico, volumen, tendencia y potencial de rebote/acumulación:
-        
-        Datos de mercado:
-        {json.dumps(candidatos_resumen, ensure_ascii=False)}
-        
-        Devuelve un JSON estrictamente válido con la siguiente estructura exacta (sin texto adicional fuera del JSON):
-        {{
-            "ganadoras": ["SIM1", "SIM2", "SIM3", "SIM4", "SIM5", "SIM6", "SIM7"],
-            "acumulacion": ["SIM1", "SIM2", "SIM3", "SIM4", "SIM5", "SIM6", "SIM7"],
-            "perdedoras": ["SIM1", "SIM2", "SIM3", "SIM4", "SIM5", "SIM6", "SIM7"]
-        }}
-        """
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        if text.startswith("```json"):
-            text = text[7:-3].strip()
-        elif text.startswith("```"):
-            text = text[3:-3].strip()
-        return json.loads(text)
-    except Exception as e:
-        print(f"Error en el análisis autónomo de Gemini AI: {e}")
-        return None
-
 def preparar_datos(tickers):
     usdt_pairs = [t for t in tickers if t['symbol'].endswith('USDT') and not any(x in t['symbol'] for x in ['UP', 'DOWN', 'BULL', 'BEAR'])]
     
-    # Preparar resumen compacto para Gemini AI
-    resumen_mercado = [
-        {
-            "symbol": t['symbol'].replace('USDT', ''),
-            "price": float(t['lastPrice']),
-            "change": float(t['priceChangePercent']),
-            "volume": float(t['quoteVolume'])
-        }
-        for t in usdt_pairs
-    ]
+    # Top 7 Ganadoras
+    ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
     
-    # Intentar selección autónoma con Gemini AI
-    seleccion_ia = analisis_autonomo_gemini(resumen_mercado[:120])
+    # Top 7 Acumulación (< $1 USD)
+    acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
+    acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
     
-    if seleccion_ia and all(k in seleccion_ia for k in ['ganadoras', 'acumulacion', 'perdedoras']):
-        print("¡Selección realizada de forma autónoma por Gemini AI!")
-        ganadoras = [next((t for t in usdt_pairs if t['symbol'] == f"{s}USDT"), None) for s in seleccion_ia['ganadoras']]
-        acumulacion = [next((t for t in usdt_pairs if t['symbol'] == f"{s}USDT"), None) for s in seleccion_ia['acumulacion']]
-        perdedoras = [next((t for t in usdt_pairs if t['symbol'] == f"{s}USDT"), None) for s in seleccion_ia['perdedoras']]
-        
-        ganadoras = [t for t in ganadoras if t is not None][:7]
-        acumulacion = [t for t in acumulacion if t is not None][:7]
-        perdedoras = [t for t in perdedoras if t is not None][:7]
-    else:
-        # Fallback robusto
-        ganadoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']), reverse=True)[:7]
-        acumulacion_pool = [t for t in usdt_pairs if float(t['lastPrice']) < 1.0]
-        acumulacion = sorted(acumulacion_pool, key=lambda x: float(x['quoteVolume']), reverse=True)[:7]
-        perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
+    # Top 7 Perdedoras
+    perdedoras = sorted(usdt_pairs, key=lambda x: float(x['priceChangePercent']))[:7]
     
-    # Tus 5 favoritas
+    # Tus 5 favoritas (puedes modificar los símbolos aquí cuando quieras)
     favoritas_simbolos = ['LUNC', 'BANK', 'BTC', 'ETH', 'SOL']
     favoritas = []
     for sim in favoritas_simbolos:
@@ -119,11 +58,12 @@ def preparar_datos(tickers):
 def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
     base_url_netlify = "https://gregarious-frangollo-0346c5.netlify.app"
     
+    # Parte 1: Ganadoras (7) y Acumulación (7)
     mensaje_1 = (
-        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (1/2)\n"
-        "🤖 *Análisis Autónomo de Oportunidades de Inversión*\n"
-        "⚡ **Estado:** Activo (GitHub Actions - Cada 15m)\n\n"
-        "🚀 **1. TOP 7 GANADORAS (Selección IA)**\n"
+        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (1/2)\n"
+        "📊 Monitoreo Global: Top de Binance\n"
+        "⚡ **Estado:** Automatización Activa (Cada 15m)\n\n"
+        "🚀 **1. TOP 7 GANADORAS**\n"
     )
     
     for item in ganadoras:
@@ -140,7 +80,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_1 += "\n💎 **2. TOP 7 ACUMULACIÓN (< $1 USD - Selección IA)**\n"
+    mensaje_1 += "\n💎 **2. TOP 7 ACUMULACIÓN (< $1 USD)**\n"
     for item in acumulacion:
         sim = item['symbol'].replace('USDT', '')
         precio = float(item['lastPrice'])
@@ -155,9 +95,10 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
+    # Parte 2: Perdedoras (7) y Favoritas (5)
     mensaje_2 = (
-        "🧠 **CENTRAL DE INTELIGENCIA & GEMINI AI** (2/2)\n\n"
-        "📉 **3. TOP 7 PERDEDORAS (Potencial Rebote - Selección IA)**\n"
+        "🧠 **CENTRAL DE INTELIGENCIA DE MERCADO** (2/2)\n\n"
+        "📉 **3. TOP 7 PERDEDORAS**\n"
     )
     for item in perdedoras:
         sim = item['symbol'].replace('USDT', '')
@@ -188,7 +129,7 @@ def construir_mensajes(ganadoras, acumulacion, perdedoras, favoritas):
             f"  └ [📊 Resumen IA]({url_ia}) | [🔶 Tradear]({url_trade})\n"
         )
 
-    mensaje_2 += "\n✅ Análisis autónomo completado con éxito."
+    mensaje_2 += "\n✅ Alerta enviada correctamente."
     
     return mensaje_1, mensaje_2
 
@@ -210,12 +151,12 @@ def enviar_a_telegram(mensaje_1, mensaje_2):
     })
     
     if p1.status_code == 200 and p2.status_code == 200:
-        print("¡Análisis autónomo enviado con éxito a Telegram!")
+        print("¡Mensajes enviados con éxito a Telegram!")
     else:
         print(f"Error al enviar alerta: {p1.text} | {p2.text}")
 
 if __name__ == "__main__":
-    print("Iniciando análisis autónomo con Gemini AI...")
+    print("Iniciando análisis de mercado...")
     datos = obtener_datos_binance()
     if datos:
         ganadoras, acumulacion, perdedoras, favoritas = preparar_datos(datos)
